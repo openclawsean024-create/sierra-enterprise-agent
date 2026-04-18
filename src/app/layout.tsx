@@ -46,7 +46,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <NavLink href="/">首頁</NavLink>
                 <NavLink href="/chat">對話</NavLink>
                 <NavLink href="/dashboard">數據分析</NavLink>
-                <NavLink href="/tickets">工單</NavLink>
                 <NavLink href="/widget">嵌入 Widget</NavLink>
               </div>
             </div>

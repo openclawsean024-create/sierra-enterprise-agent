@@ -1,163 +1,221 @@
 'use client';
-import { useState } from 'react';
 
-const MOCK_DAYS = Array.from({ length: 7 }, (_, i) => {
-  const d = new Date();
-  d.setDate(d.getDate() - (6 - i));
-  return d.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' });
-});
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { getAllConversations } from '@/lib/chatContext';
+import { faqs } from '@/lib/faqData';
 
-const MOCK_VOLUME = [142, 168, 195, 157, 203, 187, 221];
-const MOCK_SATISFACTION = [4.1, 4.3, 4.0, 4.4, 4.2, 4.5, 4.6];
-const MOCK_RESPONSE = [2.1, 1.8, 2.4, 1.9, 2.0, 1.7, 1.5];
+interface DailyStats {
+  date: string;
+  label: string;
+  conversations: number;
+  resolved: number;
+  satisfaction: number;
+}
 
-const TOP_INTENTS = [
-  { name: '訂單查詢', count: 892, pct: 32 },
-  { name: '退貨申請', count: 456, pct: 16 },
-  { name: '產品資訊', count: 387, pct: 14 },
-  { name: '優惠折扣', count: 298, pct: 11 },
-  { name: '技術問題', count: 245, pct: 9 },
-  { name: '帳戶登入', count: 201, pct: 7 },
-  { name: '其他', count: 302, pct: 11 },
-];
+function generateMockData(): DailyStats[] {
+  const days = ['週一', '週二', '週三', '週四', '週五', '週六', '週日'];
+  const today = new Date();
+  return days.map((label, i) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - (6 - i));
+    const date = `${d.getMonth() + 1}/${d.getDate()}`;
+    const base = 40 + Math.sin(i * 1.2) * 20;
+    return {
+      date,
+      label,
+      conversations: Math.round(base + Math.random() * 15),
+      resolved: Math.round(75 + Math.random() * 20),
+      satisfaction: Math.round(82 + Math.random() * 15),
+    };
+  });
+}
 
-const recentTickets = [
-  { id: 'TK-001', user: '王小明', subject: '訂單未收到', status: '處理中', time: '2分鐘前' },
-  { id: 'TK-002', user: '陳小華', subject: '商品損壞', status: '待回覆', time: '8分鐘前' },
-  { id: 'TK-003', user: '李小芳', subject: '退貨申請', status: '已解決', time: '15分鐘前' },
-  { id: 'TK-004', user: '張大強', subject: '優惠碼失效', status: '待回覆', time: '23分鐘前' },
-];
-
-const statusColors: Record<string, string> = {
-  '處理中': 'bg-blue-900/40 text-blue-400 border-blue-800',
-  '待回覆': 'bg-amber-900/40 text-amber-400 border-amber-800',
-  '已解決': 'bg-green-900/40 text-green-400 border-green-800',
-};
+function TopFAQItem({ rank, question, count }: { rank: number; question: string; count: number }) {
+  const maxCount = 120;
+  const barWidth = Math.min((count / maxCount) * 100, 100);
+  return (
+    <div className="flex items-center gap-3 py-2">
+      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+        rank === 1 ? 'bg-amber-400 text-amber-900' :
+        rank === 2 ? 'bg-slate-300 text-slate-700' :
+        rank === 3 ? 'bg-orange-400 text-orange-900' :
+        'bg-white/10 text-slate-400'
+      }`}>
+        {rank}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between text-xs mb-1">
+          <span className="text-slate-200 truncate">{question}</span>
+          <span className="text-slate-400 ml-2 flex-shrink-0">{count} 次</span>
+        </div>
+        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${
+              rank === 1 ? 'bg-amber-400' :
+              rank === 2 ? 'bg-slate-300' :
+              rank === 3 ? 'bg-orange-400' :
+              'bg-indigo-400'
+            }`}
+            style={{ width: `${barWidth}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
-  const [period, setPeriod] = useState('7d');
+  const [dailyData, setDailyData] = useState<DailyStats[]>([]);
+  const [stats, setStats] = useState({ conversations: 0, resolved: 0, satisfaction: 0 });
+  const [topFAQs, setTopFAQs] = useState<{ question: string; count: number }[]>([]);
 
-  const maxVol = Math.max(...MOCK_VOLUME);
+  useEffect(() => {
+    const savedStats = localStorage.getItem('sierra_stats');
+    if (savedStats) {
+      setStats(JSON.parse(savedStats));
+    } else {
+      const mock = { conversations: 247, resolved: 89, satisfaction: 94 };
+      setStats(mock);
+      localStorage.setItem('sierra_stats', JSON.stringify(mock));
+    }
+
+    setDailyData(generateMockData());
+
+    const allConv = getAllConversations();
+    const faqCounts: Record<string, number> = {};
+    allConv.forEach(conv => {
+      conv.messages.filter(m => m.role === 'user').forEach(m => {
+        const matched = faqs.find(fq =>
+          fq.keywords.some(kw => m.content.toLowerCase().includes(kw.toLowerCase()))
+        );
+        if (matched) {
+          const key = matched.answer['zh-TW'].slice(0, 30);
+          faqCounts[key] = (faqCounts[key] || 0) + 1;
+        }
+      });
+    });
+    const sorted = Object.entries(faqCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([q, c]) => ({ question: q + '...', count: c }));
+
+    if (sorted.length < 5) {
+      setTopFAQs([
+        { question: '關於價格與方案諮詢', count: 87 },
+        { question: '如何開通與設定帳戶', count: 63 },
+        { question: '密碼重設與登入問題', count: 45 },
+        { question: '功能介紹與使用方式', count: 38 },
+        { question: '付款方式相關問題', count: 29 },
+      ]);
+    } else {
+      setTopFAQs(sorted);
+    }
+  }, []);
+
+  const maxConv = Math.max(...dailyData.map(d => d.conversations), 1);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-xl font-bold text-white">數據分析儀表板</h1>
-            <p className="text-xs text-gray-500 mt-1">即時掌握客服成效</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 to-slate-900 text-white">
+      <header className="border-b border-white/10 bg-slate-950/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link href="/" className="text-slate-400 hover:text-white transition-colors text-sm">← 首頁</Link>
+            <span className="text-slate-600">|</span>
+            <h1 className="font-semibold text-sm">📊 數據儀表板</h1>
           </div>
-          <div className="flex gap-2">
-            {['7d', '30d', '90d'].map(p => (
-              <button key={p} onClick={() => setPeriod(p)}
-                className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${period === p ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-gray-900 border-gray-800 text-gray-400 hover:text-white'}`}>
-                {p === '7d' ? '7天' : p === '30d' ? '30天' : '90天'}
-              </button>
-            ))}
+          <div className="text-xs text-slate-500">
+            數據更新：{new Date().toLocaleDateString('zh-TW', { month: 'long', day: 'numeric' })}
           </div>
         </div>
+      </header>
 
+      <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-3 gap-4">
           {[
-            { label: '總對話量', value: '1,381', change: '+18%', up: true, icon: '💬' },
-            { label: '平均滿意度', value: '4.3', change: '+0.2', up: true, icon: '⭐' },
-            { label: '平均回應時間', value: '1.9s', change: '-0.3s', up: true, icon: '⚡' },
-            { label: '解決率', value: '94.2%', change: '+2.1%', up: true, icon: '✅' },
-          ].map((kpi) => (
-            <div key={kpi.label} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xl">{kpi.icon}</span>
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${kpi.up ? 'bg-green-900/40 text-green-400' : 'bg-red-900/40 text-red-400'}`}>
-                  {kpi.change}
-                </span>
+            { icon: '💬', label: '總對話數', value: stats.conversations || 247 },
+            { icon: '✅', label: '解決率', value: `${stats.resolved || 89}%` },
+            { icon: '⭐', label: '滿意度', value: `${stats.satisfaction || 94}%` },
+          ].map(k => (
+            <div key={k.label} className="rounded-2xl border border-white/10 bg-white/5 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-2xl">{k.icon}</span>
               </div>
-              <div className="text-2xl font-bold text-white">{kpi.value}</div>
-              <div className="text-xs text-gray-500">{kpi.label}</div>
+              <p className="text-2xl font-bold">{k.value}</p>
+              <p className="text-slate-400 text-xs mt-1">{k.label}</p>
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          {/* Volume Chart */}
-          <div className="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">每日對話量</h2>
-            <div className="flex items-end gap-3 h-40">
-              {MOCK_VOLUME.map((vol, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <div className="w-full bg-indigo-600/80 rounded-t-md transition-all hover:bg-indigo-500"
-                    style={{ height: `${(vol / maxVol) * 100}%` }}
-                  />
-                  <span className="text-xs text-gray-500">{MOCK_DAYS[i]}</span>
+        {/* Conversation Trend */}
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+          <h2 className="text-lg font-semibold mb-6">📈 近 7 天對話量趨勢</h2>
+          <div className="flex items-end gap-3" style={{ height: '180px' }}>
+            {dailyData.map((d, i) => {
+              const heightPct = (d.conversations / maxConv) * 100;
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                  <div className="w-full flex flex-col items-center justify-end" style={{ height: '150px' }}>
+                    <div
+                      className="w-full bg-gradient-to-t from-indigo-600 to-indigo-400 rounded-t-lg relative group cursor-default transition-all hover:brightness-125"
+                      style={{ height: `${heightPct}%`, minHeight: '8px' }}
+                      title={`${d.label} ${d.date}: ${d.conversations} 對話`}
+                    >
+                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/20">
+                        {d.conversations} 對話
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-xs text-slate-500">{d.label}</span>
+                  <span className="text-xs text-slate-600">{d.date}</span>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
 
-          {/* Top Intents */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">熱門意圖排行</h2>
-            <div className="space-y-2.5">
-              {TOP_INTENTS.map((item, i) => (
-                <div key={item.name}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-gray-300">{item.name}</span>
-                    <span className="text-xs text-gray-500">{item.count} ({item.pct}%)</span>
-                  </div>
-                  <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-600 rounded-full transition-all"
-                      style={{ width: `${item.pct}%` }} />
-                  </div>
+          <div className="mt-6 grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-slate-400 mb-2">平均解決率</p>
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-bold text-emerald-400">
+                  {Math.round(dailyData.reduce((a, d) => a + d.resolved, 0) / dailyData.length)}%
+                </span>
+                <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full"
+                    style={{ width: `${dailyData.reduce((a, d) => a + d.resolved, 0) / dailyData.length}%` }}
+                  />
                 </div>
-              ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400 mb-2">平均滿意度</p>
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-bold text-amber-400">
+                  {Math.round(dailyData.reduce((a, d) => a + d.satisfaction, 0) / dailyData.length)}%
+                </span>
+                <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full"
+                    style={{ width: `${dailyData.reduce((a, d) => a + d.satisfaction, 0) / dailyData.length}%` }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Satisfaction trend */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">滿意度趨勢</h2>
-            <div className="flex items-end gap-2 h-28">
-              {MOCK_SATISFACTION.map((s, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <div className="w-full bg-green-600/80 rounded-t-md"
-                    style={{ height: `${((s - 3) / 2) * 100}%` }}
-                  />
-                  <span className="text-xs text-gray-500">{MOCK_DAYS[i].split(' ')[1]}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-between text-xs text-gray-600 mt-2">
-              <span>3.0</span><span>5.0</span>
-            </div>
-          </div>
-
-          {/* Recent tickets */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">最新工單</h2>
-            <div className="space-y-2">
-              {recentTickets.map((t) => (
-                <div key={t.id} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
-                  <div>
-                    <div className="text-xs font-medium text-white">{t.subject}</div>
-                    <div className="text-xs text-gray-500">{t.user} · {t.time}</div>
-                  </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full border ${statusColors[t.status]}`}>
-                    {t.status}
-                  </span>
-                </div>
+        {/* Hot FAQs */}
+        <div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+            <h2 className="text-lg font-semibold mb-4">🔥 熱門問題排行榜</h2>
+            <div className="space-y-1">
+              {topFAQs.map((faq, i) => (
+                <TopFAQItem key={i} rank={i + 1} question={faq.question} count={faq.count} />
               ))}
             </div>
           </div>
-        </div>
-
-        {/* Export */}
-        <div className="mt-6 flex justify-end">
-          <button className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm text-gray-300 transition-colors">
-            <span>📥</span> 匯出 CSV
-          </button>
         </div>
       </div>
     </div>
