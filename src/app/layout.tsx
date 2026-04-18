@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import Link from "next/link";
 
@@ -58,6 +59,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </nav>
         <main className="pt-16">{children}</main>
+        <Script
+          src="/widget.js"
+          data-api="/api/conversation"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
