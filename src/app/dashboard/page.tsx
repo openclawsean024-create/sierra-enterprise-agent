@@ -8,7 +8,6 @@ const MOCK_DAYS = Array.from({ length: 7 }, (_, i) => {
 });
 
 const MOCK_VOLUME = [142, 168, 195, 157, 203, 187, 221];
-const MOCK_SATISFACTION = [4.1, 4.3, 4.0, 4.4, 4.2, 4.5, 4.6];
 const MOCK_RESPONSE = [2.1, 1.8, 2.4, 1.9, 2.0, 1.7, 1.5];
 
 const TOP_INTENTS = [
@@ -20,19 +19,6 @@ const TOP_INTENTS = [
   { name: '帳戶登入', count: 201, pct: 7 },
   { name: '其他', count: 302, pct: 11 },
 ];
-
-const recentTickets = [
-  { id: 'TK-001', user: '王小明', subject: '訂單未收到', status: '處理中', time: '2分鐘前' },
-  { id: 'TK-002', user: '陳小華', subject: '商品損壞', status: '待回覆', time: '8分鐘前' },
-  { id: 'TK-003', user: '李小芳', subject: '退貨申請', status: '已解決', time: '15分鐘前' },
-  { id: 'TK-004', user: '張大強', subject: '優惠碼失效', status: '待回覆', time: '23分鐘前' },
-];
-
-const statusColors: Record<string, string> = {
-  '處理中': 'bg-blue-900/40 text-blue-400 border-blue-800',
-  '待回覆': 'bg-amber-900/40 text-amber-400 border-amber-800',
-  '已解決': 'bg-green-900/40 text-green-400 border-green-800',
-};
 
 export default function DashboardPage() {
   const [period, setPeriod] = useState('7d');
@@ -51,7 +37,7 @@ export default function DashboardPage() {
           <div className="flex gap-2">
             {['7d', '30d', '90d'].map(p => (
               <button key={p} onClick={() => setPeriod(p)}
-                className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${period === p ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-gray-900 border-gray-800 text-gray-400 hover:text-white'}`}>
+                className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${period === p ? 'bg-blue-600 border-blue-700 text-white' : 'bg-gray-900 border-gray-800 text-gray-400 hover:text-white'}`}>
                 {p === '7d' ? '7天' : p === '30d' ? '30天' : '90天'}
               </button>
             ))}
@@ -62,7 +48,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
             { label: '總對話量', value: '1,381', change: '+18%', up: true, icon: '💬' },
-            { label: '平均滿意度', value: '4.3', change: '+0.2', up: true, icon: '⭐' },
+            { label: '機器人回覆率', value: '94.2%', change: '+2.1%', up: true, icon: '🤖' },
             { label: '平均回應時間', value: '1.9s', change: '-0.3s', up: true, icon: '⚡' },
             { label: '解決率', value: '94.2%', change: '+2.1%', up: true, icon: '✅' },
           ].map((kpi) => (
@@ -86,7 +72,7 @@ export default function DashboardPage() {
             <div className="flex items-end gap-3 h-40">
               {MOCK_VOLUME.map((vol, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <div className="w-full bg-indigo-600/80 rounded-t-md transition-all hover:bg-indigo-500"
+                  <div className="w-full bg-blue-600/80 rounded-t-md transition-all hover:bg-blue-500"
                     style={{ height: `${(vol / maxVol) * 100}%` }}
                   />
                   <span className="text-xs text-gray-500">{MOCK_DAYS[i]}</span>
@@ -97,16 +83,16 @@ export default function DashboardPage() {
 
           {/* Top Intents */}
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">熱門意圖排行</h2>
+            <h2 className="text-sm font-semibold text-white mb-4">熱門問題 Top 5</h2>
             <div className="space-y-2.5">
-              {TOP_INTENTS.map((item, i) => (
+              {TOP_INTENTS.slice(0, 5).map((item) => (
                 <div key={item.name}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs text-gray-300">{item.name}</span>
                     <span className="text-xs text-gray-500">{item.count} ({item.pct}%)</span>
                   </div>
                   <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-600 rounded-full transition-all"
+                    <div className="h-full bg-blue-600 rounded-full transition-all"
                       style={{ width: `${item.pct}%` }} />
                   </div>
                 </div>
@@ -115,41 +101,28 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Satisfaction trend */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">滿意度趨勢</h2>
-            <div className="flex items-end gap-2 h-28">
-              {MOCK_SATISFACTION.map((s, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <div className="w-full bg-green-600/80 rounded-t-md"
-                    style={{ height: `${((s - 3) / 2) * 100}%` }}
-                  />
-                  <span className="text-xs text-gray-500">{MOCK_DAYS[i].split(' ')[1]}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-between text-xs text-gray-600 mt-2">
-              <span>3.0</span><span>5.0</span>
-            </div>
-          </div>
-
-          {/* Recent tickets */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">最新工單</h2>
-            <div className="space-y-2">
-              {recentTickets.map((t) => (
-                <div key={t.id} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
-                  <div>
-                    <div className="text-xs font-medium text-white">{t.subject}</div>
-                    <div className="text-xs text-gray-500">{t.user} · {t.time}</div>
+        {/* Conversation History */}
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+          <h2 className="text-sm font-semibold text-white mb-4">對話歷史（最近 20 筆）</h2>
+          <div className="space-y-2">
+            {[
+              { time: '10:30', question: '運費多少？', answer: '台灣本島訂單滿 NT$1,000 免運費...', thumbs: true },
+              { time: '10:31', question: '如何退貨？', answer: '退貨流程：1. 登入會員 > 2. 訂單查詢...', thumbs: true },
+              { time: '10:32', question: '優惠折扣代碼？', answer: '目前有新用戶 9 折優惠碼：NEWBIE2024', thumbs: true },
+              { time: '10:33', question: '營業時間？', answer: '我們的營業時間是週一至週五 09:00-18:00...', thumbs: false },
+            ].map((t, i) => (
+              <div key={i} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-xs text-gray-500 flex-shrink-0">{t.time}</span>
+                    <span className="text-xs text-gray-300 truncate">{t.question}</span>
+                    <span className="text-gray-600 mx-1">→</span>
+                    <span className="text-xs text-gray-500 truncate">{t.answer}</span>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full border ${statusColors[t.status]}`}>
-                    {t.status}
-                  </span>
                 </div>
-              ))}
-            </div>
+                <span className="text-sm flex-shrink-0 ml-2">{t.thumbs ? '👍' : '👎'}</span>
+              </div>
+            ))}
           </div>
         </div>
 

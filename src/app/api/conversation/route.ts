@@ -4,7 +4,9 @@ const INTENTS: Record<string, { keywords: string[]; responses: string[] }> = {
   '查詢': { keywords: ['查詢', '想知道', '詢問', '订单', '訂單', '查'], responses: ['好的，我來幫您查詢。', '請稍候，我正在為您查詢。'] },
   '退貨': { keywords: ['退貨', '退', '退款', '取消'], responses: ['了解，我來幫您處理退貨申請。', '好的，退貨流程我來說明...'] },
   '投訴': { keywords: ['投訴', '抱怨', '不滿'], responses: ['非常抱歉造成您的不便，我會立即為您處理。', '感謝您的反映，我們一定會改進...'] },
-  '真人': { keywords: ['真人', '客服', '服務員', '轉接', '轉人工'], responses: ['好的，正在為您轉接真人客服，請稍候。'] },
+  '建議': { keywords: ['建議', '希望', '可以改'], responses: ['謝謝您的建議！', '好的，這個建議我會轉交給相關部門。'] },
+  '技術': { keywords: ['壞了', '不行', '故障', '問題', 'error', 'Error'], responses: ['了解，讓我協助您解決技術問題。', '抱歉造成困擾，我來幫您處理。'] },
+  '產品': { keywords: ['產品', '商品', '價格', '規格', '功能'], responses: ['我們的產品規格齊全，請問您想了解哪一款產品的詳細資訊？', '好的，以下是產品的詳細資訊...'] },
 };
 
 const FAQ: Record<string, string> = {
@@ -47,18 +49,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing message' }, { status: 400 });
     }
 
-    // Simulate LLM delay
+    // Simulate delay
     await new Promise(r => setTimeout(r, 600 + Math.random() * 400));
 
     const intent = detectIntent(message);
     const response = generateResponse(message);
-    const needsHuman = intent === '真人';
     const faqMatch = intent.startsWith('FAQ:');
 
     return NextResponse.json({
       response,
       intent,
-      needsHuman,
       faqMatch,
       language,
       timestamp: Date.now(),

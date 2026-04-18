@@ -34,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="max-w-6xl mx-auto px-4 h-full flex items-center justify-between">
             <div className="flex items-center gap-8">
               <Link href="/" className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
                   <span className="text-lg">💬</span>
                 </div>
                 <div>
@@ -46,7 +46,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <NavLink href="/">首頁</NavLink>
                 <NavLink href="/chat">對話</NavLink>
                 <NavLink href="/dashboard">數據分析</NavLink>
-                <NavLink href="/tickets">工單</NavLink>
                 <NavLink href="/widget">嵌入 Widget</NavLink>
               </div>
             </div>

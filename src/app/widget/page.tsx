@@ -49,7 +49,7 @@ export default function WidgetPage() {
           <h2 className="text-sm font-semibold text-white mb-4">Widget 預覽</h2>
           <div className="bg-gray-800 rounded-xl p-8 text-center relative">
             <div className="absolute bottom-4 right-4 flex flex-col gap-2">
-              <button className="w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-500/30 flex items-center justify-center transition-colors">
+              <button className="w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/30 flex items-center justify-center transition-colors">
                 <span className="text-xl">💬</span>
               </button>
             </div>
@@ -67,7 +67,7 @@ export default function WidgetPage() {
               { step: '3', title: '上線', desc: '完成！Widget 會自動出現在網站右下角' },
             ].map((s) => (
               <div key={s.step} className="flex gap-4">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-sm font-bold text-white">{s.step}</div>
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-bold text-white">{s.step}</div>
                 <div>
                   <div className="text-sm font-medium text-white" dangerouslySetInnerHTML={{ __html: s.title }} />
                   <div className="text-xs text-gray-500 mt-0.5" dangerouslySetInnerHTML={{ __html: s.desc }} />
@@ -83,7 +83,7 @@ export default function WidgetPage() {
             <span className="text-xs text-gray-400 font-mono">HTML</span>
             <button
               onClick={() => copy(CODE_SNIPPET)}
-              className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+              className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
             >
               {copied ? '✅ 已複製' : '📋 複製'}
             </button>
@@ -99,7 +99,7 @@ export default function WidgetPage() {
             <span className="text-xs text-gray-400 font-mono">完整 HTML 範例</span>
             <button
               onClick={() => copy(HTML_EXAMPLE)}
-              className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+              className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
             >
               📋 複製
             </button>
